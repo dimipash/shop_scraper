@@ -1,0 +1,30 @@
+[project]
+name = "hm_scraper"
+version = "0.1.0"
+description = "High-performance H&M product data ingestion"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "scrapy>=2.11.1",
+    "pydantic>=2.6.3",
+    "pydantic-settings>=2.2.1",
+    "structlog>=24.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "black>=24.2.0",
+    "isort>=5.13.2",
+    "mypy>=1.8.0",
+    "pytest>=8.0.2",
+]
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
