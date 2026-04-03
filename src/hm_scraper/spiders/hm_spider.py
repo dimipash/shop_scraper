@@ -6,11 +6,14 @@ import scrapy
 from scrapy.http import Response
 
 from hm_scraper.models import Product
+from hm_scraper.services.parser import parse_hm_product_html
 
 
 class HMProductSpider(scrapy.Spider):
     name = "hm_product"
-    start_urls = ["https://www2.hm.com/bg_bg/productpage.1274171042.html"]
+    start_urls = [
+        "https://webcache.googleusercontent.com/search?q=cache:https://www2.hm.com/bg_bg/productpage.1274171042.html"
+    ]
 
     custom_settings = {
         "USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -32,46 +35,11 @@ class HMProductSpider(scrapy.Spider):
     }
 
     def parse(self, response: Response) -> Generator[Product, None, None]:
-        script_text = response.xpath(
-            "//script[contains(text(), 'productArticleDetails')]/text()"
-        ).get()
-
-        if not script_text:
-            self.logger.error("Required product data script not found in HTML")
-            return
-
-        json_match = re.search(r"var productArticleDetails = (\{.*?\});", script_text)
-        if not json_match:
-            self.logger.error("Failed to extract product JSON from script text")
-            return
-
-        raw_data = json.loads(json_match.group(1))
-
-        # The specific article ID from the URL
-        article_id = "1274171042"
-        article_info = raw_data.get(article_id, {})
-
-        raw_price = str(article_info.get("whitePriceValue", "0")).replace(",", ".")
-        price = float(re.sub(r"[^\d.]", "", raw_price))
-
-        reviews_count = int(
-            response.css("span.reviews-number::text").re_first(r"\d+") or 0
-        )
-        reviews_score = float(
-            response.css("span.reviews-rating::text").re_first(r"[\d.]+") or 0.0
-        )
-
-        available_colors = [
-            variant.get("name")
-            for variant in raw_data.values()
-            if isinstance(variant, dict) and "name" in variant
-        ]
-
-        yield Product(
-            name=response.css("h1.primary-product-name::text").get(default="").strip(),
-            price=price,
-            current_color=article_info.get("name", "Unknown"),
-            available_colors=available_colors,
-            reviews_count=reviews_count,
-            reviews_score=reviews_score,
-        )
+        html_content = response.text
+        
+        product = parse_hm_product_html(html_content, current_url=response.url)
+        
+        if product:
+            yield product
+        else:
+            self.logger.error("Failed to parse product data from HTML")

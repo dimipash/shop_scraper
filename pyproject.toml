@@ -9,6 +9,7 @@ dependencies = [
     "pydantic>=2.6.3",
     "pydantic-settings>=2.2.1",
     "structlog>=24.1.0",
+    "brotli>=1.2.0",
 ]
 
 [dependency-groups]
